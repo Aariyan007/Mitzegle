@@ -45,7 +45,7 @@ const Navbar = () => {
                     }}
                     animate={{
                         x: ['-10%', '110%'],
-                        y: [Math.random() * 20, Math.random() * 20],
+                        y: [i * 8, i * 8],
 
 
                     }}
