@@ -2,6 +2,12 @@
 import Footer from "./components/Footer";
 import Navbar from "./components/Navbar";
 import { motion } from "framer-motion";
+import { io } from "socket.io-client";
+
+console.log("Socket URL:", process.env.NEXT_PUBLIC_SOCKET_URL);
+const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL,{
+  transports:['websocket']
+});
 
 export default function Home() {
   const particles = [
@@ -12,6 +18,8 @@ export default function Home() {
     { left: '25%', top: '85%' },
     { left: '60%', top: '45%' },
   ];
+
+
 
   return (
     <>
