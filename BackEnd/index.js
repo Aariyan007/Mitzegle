@@ -16,6 +16,9 @@ const activePairs = new Map(); // user a : user b
 // console.log("Server is running...");
 io.on('connection',(socket)=>{
     console.log(socket.id);
+    if(waiting.includes(socket.id)){
+        return;
+    }
     socket.on("name",()=>{
         if(waiting.length > 0){
             const partner = waiting.shift();
