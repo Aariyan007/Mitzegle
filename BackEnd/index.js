@@ -19,14 +19,14 @@ io.on('connection',(socket)=>{
     if(waiting.includes(socket.id)){
         return;
     }
-    socket.on("name",()=>{
+    socket.on("start",()=>{
         if(waiting.length > 0){
             const partner = waiting.shift();
             const roomId = uuid();
             activePairs.set(socket.id,partner);
             activePairs.set(partner,socket.id);
-            socket.emit("Matched : ",{roomId});
-            socket.to(partner).emit("Matched : ",{roomId});
+            socket.emit("Matched",{roomId});
+            socket.to(partner).emit("Matched",{roomId});
         }
         else{
             waiting.push(socket.id);

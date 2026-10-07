@@ -4,6 +4,8 @@ import Footer from "./components/Footer";
 import Navbar from "./components/Navbar";
 import { AnimatePresence, motion } from "framer-motion";
 import { io } from "socket.io-client";
+import { div } from "motion/react-client";
+import VideoRoom from "./components/VideoRoom";
 
 console.log("Socket URL:", process.env.NEXT_PUBLIC_SOCKET_URL);
 const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL, {
@@ -12,15 +14,28 @@ const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL, {
 
 export default function Home() {
   const [status, setStatus] = useState("idle");
-
-  useEffect(() => {
-    socket.emit("name", "Aariyan");
-  }, [])
-
+  const[roomId,setroomId] = useState("");
   const startChat = () => {
     socket.emit("start");
     setStatus("waiting");
   }
+
+  useEffect(() => {
+  socket.on("connect", () => console.log("CONNECTED:", socket.id));
+  socket.on("connect_error", (err) => console.log("CONNECT ERROR:", err.message));
+  socket.on("disconnect", (reason) => console.log("DISCONNECTED:", reason));
+}, []);
+
+  useEffect(()=>{
+    socket.on("Matched",({roomId})=>{
+      console.log(roomId);
+      setroomId(roomId);
+      setStatus("Talking");
+    });
+    return ()=>{
+      socket.off("Matched");
+    }
+  },[])
 
   const particles = [
     { left: '15%', top: '20%' },
@@ -339,6 +354,12 @@ export default function Home() {
               </motion.button>
             </div>
           </motion.div>
+        )}
+
+        {status === "Talking" && roomId && (
+          <div>
+            <VideoRoom room={roomId} />
+          </div>
         )}
       </AnimatePresence>
 
