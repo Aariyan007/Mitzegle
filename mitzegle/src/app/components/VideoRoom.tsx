@@ -1,44 +1,51 @@
-'use client'
-import React, { useEffect, useRef } from 'react'
+"use client";
+import { useEffect, useRef, useState } from "react";
+import { fetchZegoToken } from "../lib/api";
 
-function VideoRoom({ roomId }: { roomId: string }) {
-    const containerRef = useRef<HTMLDivElement>(null);
-    const zpRef = useRef<any>(null);
+export default function VideoRoom({ roomId, onSkip, onLeave }: {
+  roomId: string; onSkip: () => void; onLeave: () => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [error, setError] = useState("");
 
-    useEffect(() => {
-        const start = async () => {
-            const { ZegoUIKitPrebuilt } = await import("@zegocloud/zego-uikit-prebuilt");
+  useEffect(() => {
+    let zp: { destroy: () => void } | null = null;
+    let cancelled = false;
+    (async () => {
+      try {
+        const [{ token, appId }, { ZegoUIKitPrebuilt }] = await Promise.all([
+          fetchZegoToken(roomId),
+          import("@zegocloud/zego-uikit-prebuilt"),
+        ]);
+        if (cancelled || !containerRef.current) return;
+        const userId = crypto.randomUUID();
+        const kit = ZegoUIKitPrebuilt.generateKitTokenForProduction(appId, token, roomId, userId, "Stranger");
+        const instance = ZegoUIKitPrebuilt.create(kit);
+        zp = instance;
+        instance.joinRoom({
+          container: containerRef.current,
+          scenario: { mode: ZegoUIKitPrebuilt.VideoConference },
+          showLeavingView: false,
+          showPreJoinView: false,
+          showRoomTimer: false,
+          showUserList: false,
+          onLeaveRoom: onLeave,
+        });
+      } catch (e) {
+        setError((e as Error).message);
+      }
+    })();
+    return () => { cancelled = true; zp?.destroy(); };
+  }, [roomId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-            const userId = crypto.randomUUID();
-
-            const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(
-                Number(process.env.NEXT_PUBLIC_APP_ID),
-                process.env.NEXT_PUBLIC_SERVER_SECRET!,
-                roomId,
-                userId,
-                "Stranger"
-            );
-
-            const zp = ZegoUIKitPrebuilt.create(kitToken);
-            zpRef.current = zp;
-
-            zp.joinRoom({
-                container: containerRef.current!,
-                scenario: {
-                    mode: ZegoUIKitPrebuilt.VideoConference,
-                },
-            });
-        };
-
-        start();
-
-        return () => {
-            zpRef.current?.destroy(); // cleanup (important)
-        };
-
-    }, [roomId]);
-
-    return <div ref={containerRef} style={{ width: "100%", height: "100vh" }} />;
+  return (
+    <div className="relative w-full h-screen pt-16">
+      {error && <p className="absolute top-20 left-1/2 -translate-x-1/2 text-red-300 z-20">{error}</p>}
+      <div ref={containerRef} className="w-full h-full" />
+      <button onClick={onSkip}
+        className="absolute bottom-24 right-6 z-20 px-6 py-3 rounded-full bg-green-600 hover:bg-green-500 text-white font-semibold">
+        Skip
+      </button>
+    </div>
+  );
 }
-
-export default VideoRoom;

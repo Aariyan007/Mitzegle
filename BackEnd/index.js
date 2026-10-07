@@ -26,6 +26,7 @@ const io = new Server(server, { cors: { origin }, maxHttpBufferSize: 1e3 });
 const { isPairedIn } = attachSocket(io);
 app.use(zegoRouter(isPairedIn));
 
-await mongoose.connect(process.env.MONGO_URI);
+await mongoose.connect(process.env.MONGO_URI, { serverSelectionTimeoutMS: 10_000 });
+console.log("Mongo connected");
 const port = process.env.PORT || 8000;
 server.listen(port, () => console.log(`Server on ${port}`));
