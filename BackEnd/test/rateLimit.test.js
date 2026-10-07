@@ -11,3 +11,12 @@ test('blocks after limit, frees after window', () => {
   t = 1001;
   assert.ok(l.hit('k'));
 });
+
+test('evicts stale keys so memory stays bounded', () => {
+  let t = 0;
+  const l = createLimiter({ limit: 1, windowMs: 1000, now: () => t, maxKeys: 100 });
+  for (let i = 0; i < 100; i++) l.hit('k' + i);
+  t = 5000;
+  l.hit('fresh');
+  assert.ok(l.size() <= 2);
+});
