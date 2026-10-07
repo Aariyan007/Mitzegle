@@ -1,26 +1,38 @@
 "use client";
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Footer from "./components/Footer";
 import Navbar from "./components/Navbar";
 import { AnimatePresence, motion } from "framer-motion";
-import { io } from "socket.io-client";
-
-console.log("Socket URL:", process.env.NEXT_PUBLIC_SOCKET_URL);
-const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL, {
-  transports: ['websocket']
-});
+import VideoRoom from "./components/VideoRoom";
+import AuthGate from "./components/AuthGate";
+import { useSocket } from "./hooks/useSocket";
+import { getToken, setToken } from "./lib/api";
 
 export default function Home() {
-  const [status, setStatus] = useState("idle");
+  const [token, setTok] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
+  const [status, setStatus] = useState<"idle" | "waiting" | "Talking">("idle");
+  const [roomId, setRoomId] = useState("");
+  const { socket, authFailed } = useSocket(token);
+
+  useEffect(() => { setTok(getToken()); setReady(true); }, []);
 
   useEffect(() => {
-    socket.emit("name", "Aariyan");
-  }, [])
+    if (!authFailed) return;
+    setToken(null); setTok(null); setStatus("idle"); setRoomId("");
+  }, [authFailed]);
 
-  const startChat = () => {
-    socket.emit("start");
-    setStatus("waiting");
-  }
+  useEffect(() => {
+    if (!socket) return;
+    socket.on("Matched", ({ roomId }: { roomId: string }) => { setRoomId(roomId); setStatus("Talking"); });
+    socket.on("PartnerLeft", () => { setRoomId(""); setStatus("waiting"); socket.emit("start"); });
+    return () => { socket.off("Matched"); socket.off("PartnerLeft"); };
+  }, [socket]);
+
+  const startChat = () => { socket?.emit("start"); setStatus("waiting"); };
+  const cancel = () => { socket?.emit("leave"); setStatus("idle"); };
+  const skip = () => { setRoomId(""); setStatus("waiting"); socket?.emit("skip"); };
+  const leave = () => { socket?.emit("leave"); setRoomId(""); setStatus("idle"); };
 
   const particles = [
     { left: '15%', top: '20%' },
@@ -32,6 +44,9 @@ export default function Home() {
   ];
 
 
+
+  if (!ready) return null;
+  if (!token) return <AuthGate onAuthed={(t) => { setToken(t); setTok(t); }} />;
 
   return (
     <>
@@ -327,7 +342,7 @@ export default function Home() {
 
               {/* Cancel */}
               <motion.button
-                onClick={() => setStatus("idle")}
+                onClick={cancel}
                 className="mt-2 px-6 py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 rounded-full text-sm font-medium transition-all duration-300"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -339,6 +354,12 @@ export default function Home() {
               </motion.button>
             </div>
           </motion.div>
+        )}
+
+        {status === "Talking" && roomId && (
+          <div>
+            <VideoRoom roomId={roomId} onSkip={skip} onLeave={leave} />
+          </div>
         )}
       </AnimatePresence>
 
