@@ -1,6 +1,6 @@
 # Mitzegle
 
-Random video chat for MGITS students only. Log in with your college email, get paired with another verified student, skip or leave any time. You stay anonymous: the other person never sees your email, branch, year or roll number.
+Random video chat for MITS students only. Log in with your college email, get paired with another verified student, skip or leave any time. You stay anonymous: the other person never sees your email, branch, year or roll number.
 
 ## How it works
 
